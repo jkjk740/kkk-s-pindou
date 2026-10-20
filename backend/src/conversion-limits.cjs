@@ -1,0 +1,2 @@
+'use strict';
+module.exports = { MAX_GRID_EDGE: 128, MAX_GRID_CELLS: 16384, MAX_PALETTE_COLORS: 221, MAX_BODY_BYTES: 262144 };

@@ -1,0 +1,35 @@
+node_modules/
+backend/data/
+.superpowers/
+dist/
+unpackage/
+.DS_Store
+.env
+.env.*
+!.env.example
+**/.spaceInfo
+**/.hbuilderx/launch.json
+project.private.config.json
+
+# Local IDE state and generated delivery copies.
+/.idea/
+/exports/
+/assets/未命名.png
+
+# Credentials, private keys, runtime logs and data backups.
+*.log
+*.pem
+*.key
+*.p12
+*.pfx
+**/AccessKey*.csv
+**/database.sql
+**/*dump*.sql
+*.sql.gz
+*.sqlite*
+*.db
+
+# Downloaded model weights are not source assets.
+*.safetensors
+*.ckpt
+*.gguf

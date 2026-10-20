@@ -1,0 +1,28 @@
+{
+  "name": "bead-island-backend",
+  "private": true,
+  "version": "1.0.0",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "start": "node --env-file-if-exists=.env src/server.cjs",
+    "dev": "node --watch --env-file-if-exists=.env src/server.cjs",
+    "provision:local": "node scripts/provision-local.cjs",
+    "migrate:community": "node --env-file-if-exists=.env scripts/migrate-community.cjs",
+    "migrate:cutout": "node --env-file-if-exists=.env scripts/migrate-cutout.cjs",
+    "seed:community": "node --env-file=.env scripts/seed-community.cjs"
+  },
+  "dependencies": {
+    "@alicloud/credentials": "2.4.7",
+    "@alicloud/aidge20260428": "5.8.0",
+    "@alicloud/openapi-core": "1.0.8",
+    "@darabonba/typescript": "1.0.5",
+    "ali-oss": "6.23.0",
+    "express": "5.2.1",
+    "multer": "2.4.0",
+    "mysql2": "3.24.5",
+    "sharp": "0.34.5"
+  }
+}

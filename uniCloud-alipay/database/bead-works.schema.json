@@ -1,0 +1,17 @@
+{
+  "bsonType": "object",
+  "description": "豆屿作品及永久保留的删除标记，仅 bead-island 云函数访问",
+  "required": ["owner", "clientId", "completedRows", "createdAt", "updatedAt", "revision", "deleted"],
+  "permission": { "read": false, "create": false, "update": false, "delete": false, "count": false },
+  "properties": {
+    "_id": { "bsonType": "string", "description": "SHA-256(JSON.stringify([owner, clientId]))" },
+    "owner": { "bsonType": "string", "description": "云端从已验证 session 派生的 userId" },
+    "clientId": { "bsonType": "string", "minLength": 1, "maxLength": 128 },
+    "pattern": { "bsonType": "object", "description": "仅精确图纸字段，首次删除未上传作品时省略" },
+    "completedRows": { "bsonType": "array", "description": "从 0 开始、不重复的已完成行号" },
+    "createdAt": { "bsonType": "long", "description": "服务器创建时间，毫秒" },
+    "updatedAt": { "bsonType": "long", "description": "服务器更新时间，毫秒" },
+    "revision": { "bsonType": "long", "minimum": 1 },
+    "deleted": { "bsonType": "bool" }
+  }
+}

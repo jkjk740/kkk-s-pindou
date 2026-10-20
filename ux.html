@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>豆屿 · UX 流程与关键交互</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { width:1900px; min-height:1300px; background:#eeefe6; padding:54px 76px 35px; }
+    .ux-header { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #d6ddcb; padding-bottom:23px; }
+    .ux-header>span { color:#7b8478; font-size:10px; letter-spacing:2px; }
+    .ux-title { margin:31px 0 25px; display:flex; justify-content:space-between; align-items:center; }
+    .ux-title h1 { font-size:40px; font-weight:600; letter-spacing:-1.5px; margin:0 0 10px; }
+    .ux-title p { color:#7b8478; font-size:12px; margin:0; }
+    .ux-title>span { color:#718567; font-size:10px; letter-spacing:2px; }
+    .flow { display:flex; align-items:center; gap:12px; margin-bottom:31px; }
+    .flow-card { flex:1; background:#f8f7f2; border:1px solid #dce1d3; border-radius:13px; padding:18px; }
+    .flow-card span { color:#91a084; font-size:10px; margin-right:10px; }
+    .flow-card strong { font-size:14px; font-weight:500; }
+    .flow-card p { color:#7b8478; font-size:10px; margin:9px 0 0 24px; }
+    .flow>b { color:#91a084; font-size:16px; font-weight:400; }
+    .ux-details { display:flex; gap:42px; }
+    .ux-item { flex:1; display:flex; align-items:center; gap:24px; }
+    .ux-phone { width:285px; height:617px; padding:5px; flex-shrink:0; border-radius:31px; border:1px solid #d3dac9; background:#fbfcf7; box-shadow:0 10px 25px -10px #52634525; overflow:hidden; }
+    .ux-viewport { width:393px; height:852px; transform:scale(.697); transform-origin:top left; border-radius:36px; overflow:hidden; }
+    iframe { width:393px; height:852px; border:0; display:block; }
+    .annotation { max-width:232px; }
+    .annotation .num { display:grid; place-items:center; width:29px; height:29px; border:1px solid #becbb1; color:#69805c; border-radius:50%; font-size:11px; }
+    .annotation h2 { font-size:20px; font-weight:500; margin:15px 0 17px; line-height:1.5; }
+    .annotation p { font-size:11px; line-height:1.9; color:#7b8478; margin:0 0 17px; }
+    .annotation .detail-tag { font-size:9px; color:#526b48; background:#e0e7d7; padding:6px 8px; border-radius:5px; display:inline-block; margin:4px 0; }
+    .principles { display:flex; gap:22px; border-top:1px solid #d6ddcb; padding-top:25px; margin-top:35px; }
+    .principle { flex:1; }
+    .principle h3 { font-size:12px; font-weight:500; margin:0 0 10px; color:#355c48; }
+    .principle p { font-size:10px; line-height:1.8; color:#7b8478; margin:0; }
+    .ux-footer { display:flex; justify-content:space-between; font-size:9px; color:#9aa38f; letter-spacing:1.5px; margin-top:30px; }
+  </style>
+</head>
+<body>
+  <div class="ux-header"><a class="studio-brand" href="index.html"><span class="brand-mark"><i></i><i></i><i></i><i></i></span><strong>豆屿</strong><span>BEAD ISLAND</span></a><span>USER EXPERIENCE / KEY INTERACTIONS</span></div>
+  <div class="ux-title"><div><h1>让创作，顺着直觉发生。</h1><p>每一步只做一个决定；系统负责配色与计数，你只管把喜欢拼出来。</p></div><span>FROM PICTURE TO LITTLE JOY</span></div>
+  <div class="flow"><div class="flow-card"><span>01</span><strong>选一张图</strong><p>相册导入 / 原创示例</p></div><b>→</b><div class="flow-card"><span>02</span><strong>调成喜欢的样子</strong><p>格数 / 颜色数量 / 手动修色</p></div><b>→</b><div class="flow-card"><span>03</span><strong>确认色号与用量</strong><p>品牌系列 / 逐色清单 / 成品尺寸</p></div><b>→</b><div class="flow-card"><span>04</span><strong>导出，或开始拼</strong><p>带色号 PNG / 本地保存</p></div><b>→</b><div class="flow-card"><span>05</span><strong>随时接着完成</strong><p>逐行标记 / 恢复进度</p></div></div>
+  <div class="ux-details">
+    <section class="ux-item"><div class="ux-phone"><div class="ux-viewport"><iframe title="图片转图编辑" src="index.html?screen=1&page=editor"></iframe></div></div><div class="annotation"><span class="num">01</span><h2>好的默认值，<br>让第一步更容易。</h2><p>先看到图纸，再调整格数与颜色。原图、像素、色号在原位置切换，让变化有参照。</p><span class="detail-tag">32 格 / 最多 12 色</span><p style="margin-top:15px">调参立即更新；单格修色支持撤销。完成后，主按钮自然进入跟拼。</p></div></section>
+    <section class="ux-item"><div class="ux-phone"><div class="ux-viewport"><iframe title="材料用量弹层" src="index.html?screen=1&page=editor&panel=materials"></iframe></div></div><div class="annotation"><span class="num">02</span><h2>备料这件事，<br>不用靠猜。</h2><p>实际统计每个色号的颗数。品牌、系列、总数和成品尺寸一起展示。</p><span class="detail-tag">色块 + 色号 + 用量</span><p style="margin-top:15px">底部弹层保留图纸上下文。导出图纸时，自动附上材料清单。</p></div></section>
+    <section class="ux-item"><div class="ux-phone"><div class="ux-viewport"><iframe title="跟拼与进度" src="index.html?screen=1&page=making&demo=1"></iframe></div></div><div class="annotation"><span class="num">03</span><h2>一次一行，<br>专心在手里的创作。</h2><p>色号高亮减少来回找位置；坐标和放大让细节更容易读。</p><span class="detail-tag">完成标记 / 自动记住进度</span><p style="margin-top:15px">保存后从作品库恢复。高频操作即时响应，不用等动效结束。</p></div></section>
+  </div>
+  <div class="principles"><div class="principle"><h3>触感反馈</h3><p>主按钮按下轻缩至 0.97，120 ms。<br>视觉控件的实际触摸区域至少 44 px。</p></div><div class="principle"><h3>轻量动效</h3><p>弹层进入 220 ms，退出 160 ms。<br>仅 transform / opacity；尊重减少动态偏好。</p></div><div class="principle"><h3>可理解的状态</h3><p>选中态配合色号、描边与勾选。<br>空白作品库有示例入口，失败时保留原图纸。</p></div><div class="principle"><h3>安心地停一下</h3><p>本地保存图纸与进度，不强制登录。<br>图片仅在本地转换；下次从保存作品继续。</p></div></div>
+  <div class="ux-footer"><span>豆屿 · UI / UX DESIGN SYSTEM</span><span>Small details. A calmer creative experience.</span></div>
+</body>
+</html>

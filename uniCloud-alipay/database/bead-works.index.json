@@ -1,0 +1,12 @@
+[
+  {
+    "IndexName": "owner_clientId",
+    "MgoKeySchema": {
+      "MgoIndexKeys": [
+        { "Name": "owner", "Direction": "1", "Type": "varchar" },
+        { "Name": "clientId", "Direction": "1", "Type": "varchar" }
+      ],
+      "MgoIsUnique": true
+    }
+  }
+]

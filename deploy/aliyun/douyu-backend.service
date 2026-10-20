@@ -1,0 +1,44 @@
+[Unit]
+Description=Douyu bead craft API
+Wants=network-online.target
+Requires=mysql.service
+After=network-online.target mysql.service
+StartLimitIntervalSec=60
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=douyu
+Group=douyu
+WorkingDirectory=/opt/douyu/current/backend
+Environment=NODE_ENV=production
+EnvironmentFile=/etc/douyu/backend.env
+ExecStart=/opt/node24/bin/node /opt/douyu/current/backend/src/server.cjs
+Restart=on-failure
+RestartSec=5s
+KillSignal=SIGTERM
+TimeoutStopSec=20s
+UMask=0077
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=douyu-backend
+
+# Keep V8 JIT and sharp native workers available; application data is writable.
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+ReadWritePaths=/var/lib/douyu
+
+[Install]
+WantedBy=multi-user.target

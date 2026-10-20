@@ -1,0 +1,86 @@
+{
+  "pages": [
+    {
+      "path": "pages/home/index",
+      "style": {
+        "navigationBarTitleText": "豆屿",
+        "enablePullDownRefresh": true
+      }
+    },
+    {
+      "path": "pages/editor/index",
+      "style": {
+        "navigationBarTitleText": "图片转图纸"
+      }
+    },
+    {
+      "path": "pages/palette/index",
+      "style": {
+        "navigationBarTitleText": "色号库"
+      }
+    },
+    {
+      "path": "pages/works/index",
+      "style": {
+        "navigationBarTitleText": "我的作品"
+      }
+    },
+    {
+      "path": "pages/making/index",
+      "style": {
+        "navigationBarTitleText": "开始跟拼"
+      }
+    },
+    {
+      "path": "pages/community/detail",
+      "style": {
+        "navigationBarTitleText": "图纸详情"
+      }
+    },
+    {
+      "path": "pages/community/publish",
+      "style": {
+        "navigationBarTitleText": "发布作品"
+      }
+    },
+    { "path": "pages/cutout/index", "style": { "navigationBarTitleText": "抠图", "disableScroll": true } }
+  ],
+  "globalStyle": {
+    "navigationStyle": "custom",
+    "backgroundColor": "#F8F7F2",
+    "backgroundTextStyle": "dark",
+    "navigationBarTextStyle": "black"
+  },
+  "tabBar": {
+    "color": "#8B9385",
+    "selectedColor": "#355C48",
+    "backgroundColor": "#FFFEFA",
+    "borderStyle": "white",
+    "list": [
+      {
+        "pagePath": "pages/home/index",
+        "text": "发现",
+        "iconPath": "static/tab-home.png",
+        "selectedIconPath": "static/tab-home-active.png"
+      },
+      {
+        "pagePath": "pages/editor/index",
+        "text": "转图",
+        "iconPath": "static/tab-editor.png",
+        "selectedIconPath": "static/tab-editor-active.png"
+      },
+      {
+        "pagePath": "pages/palette/index",
+        "text": "色号",
+        "iconPath": "static/tab-palette.png",
+        "selectedIconPath": "static/tab-palette-active.png"
+      },
+      {
+        "pagePath": "pages/works/index",
+        "text": "作品",
+        "iconPath": "static/tab-works.png",
+        "selectedIconPath": "static/tab-works-active.png"
+      }
+    ]
+  }
+}

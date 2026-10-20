@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>豆屿 · UI 设计全景</title>
+  <link rel="stylesheet" href="styles.css">
+  <style>
+    body { width:2200px; min-height:1320px; background:#eeefe6; padding:58px 88px 44px; }
+    .board-top { display:flex; align-items:center; justify-content:space-between; padding-bottom:26px; border-bottom:1px solid #d6ddcb; }
+    .board-top .studio-brand strong { font-size:27px; }
+    .board-top .studio-brand>span:last-child { font-size:11px; letter-spacing:3px; }
+    .board-top .meta { font-size:11px; color:#7b8478; letter-spacing:2px; }
+    .board-title { display:flex; justify-content:space-between; align-items:center; margin:38px 0 33px; }
+    .board-title h1 { font-size:44px; margin:0; font-weight:600; letter-spacing:-1.5px; }
+    .board-title h1 span { color:#355c48; }
+    .board-title p { font-size:12px; line-height:1.9; color:#7b8478; margin:0; }
+    .board-title .mini-label { font-size:10px; letter-spacing:2px; color:#7b8478; display:block; margin-bottom:9px; }
+    .screens { display:flex; justify-content:space-between; gap:34px; }
+    .screen-item { width:367px; }
+    .screen-item .screen-heading { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+    .screen-heading span { width:23px; height:23px; display:grid; place-items:center; border:1px solid #c9d3bd; border-radius:50%; color:#7b8478; font-size:9px; }
+    .screen-heading strong { font-weight:500; font-size:13px; }
+    .screen-heading small { margin-left:auto; font-size:8px; color:#8c9485; letter-spacing:1.5px; }
+    .board-phone { width:367px; height:782px; background:#fbfcf7; padding:6px; border-radius:37px; border:1px solid #d3dac9; box-shadow:0 9px 22px -10px #4e61432b; overflow:hidden; }
+    .board-phone .viewport { width:393px; height:852px; transform:scale(.9); transform-origin:top left; border-radius:35px; overflow:hidden; }
+    iframe { width:393px; height:852px; border:0; display:block; background:#f8f7f2; }
+    .screen-caption { margin-top:18px; font-size:11px; color:#6f7d64; line-height:1.7; }
+    .board-bottom { display:flex; justify-content:space-between; align-items:center; gap:60px; border-top:1px solid #d6ddcb; padding-top:27px; margin-top:35px; }
+    .board-flow { display:flex; align-items:center; gap:20px; font-size:12px; color:#526b48; }
+    .board-flow b { color:#98a58d; font-size:13px; font-weight:400; }
+    .board-colors { display:flex; align-items:center; gap:11px; }
+    .board-colors .swatch-line { margin:0; gap:6px; }
+    .board-colors .swatch-line i { width:21px; height:21px; }
+    .board-colors>span { font-size:9px; color:#7b8478; letter-spacing:1px; }
+    .board-footer { margin-top:31px; display:flex; justify-content:space-between; font-size:9px; color:#9aa38f; letter-spacing:1.6px; }
+  </style>
+</head>
+<body>
+  <div class="board-top"><a class="studio-brand" href="index.html"><span class="brand-mark"><i></i><i></i><i></i><i></i></span><strong>豆屿</strong><span>BEAD ISLAND</span></a><span class="meta">微信小程序 / UI & UX DESIGN / 2026.10</span></div>
+  <div class="board-title"><div><span class="mini-label">A LITTLE PIXEL. A LITTLE JOY.</span><h1>把喜欢，<span>一颗颗拼出来。</span></h1></div><p>从图片转图纸，到色号、材料与制作进度。<br>一套温暖、清晰、真正为动手创作设计的小程序体验。</p></div>
+  <div class="screens">
+    <section class="screen-item"><div class="screen-heading"><span>01</span><strong>创作首页</strong><small>START WITH JOY</small></div><div class="board-phone"><div class="viewport"><iframe title="创作首页" src="index.html?screen=1&page=home&demo=1"></iframe></div></div><div class="screen-caption">主入口足够清晰；示例图案直接体验。<br>不必登录，第一次创作也轻松。</div></section>
+    <section class="screen-item"><div class="screen-heading"><span>02</span><strong>图片转图纸</strong><small>MAKE IT YOURS</small></div><div class="board-phone"><div class="viewport"><iframe title="图片转图纸" src="index.html?screen=1&page=editor&demo=1"></iframe></div></div><div class="screen-caption">实时预览，调大小、减颜色、手动修色。<br>每格有色号，每色有真实用量。</div></section>
+    <section class="screen-item"><div class="screen-heading"><span>03</span><strong>豆子色卡</strong><small>EVERY COLOR COUNTS</small></div><div class="board-phone"><div class="viewport"><iframe title="豆子色卡" src="index.html?screen=1&page=palette&demo=1"></iframe></div></div><div class="screen-caption">按色号搜索，按色系筛选。<br>点选查看色值与相近色，备料更有把握。</div></section>
+    <section class="screen-item"><div class="screen-heading"><span>04</span><strong>沉浸跟拼</strong><small>ONE BEAD AT A TIME</small></div><div class="board-phone"><div class="viewport"><iframe title="沉浸跟拼" src="index.html?screen=1&page=making&demo=1"></iframe></div></div><div class="screen-caption">按色号高亮，放大查看，逐行完成。<br>把进度记下来，随时停、随时继续。</div></section>
+    <section class="screen-item"><div class="screen-heading"><span>05</span><strong>我的作品</strong><small>KEEP LITTLE THINGS</small></div><div class="board-phone"><div class="viewport"><iframe title="我的作品" src="index.html?screen=1&page=works&demo=1"></iframe></div></div><div class="screen-caption">保存图纸与进度，也收纳新的灵感。<br>每一份喜欢，都值得好好留住。</div></section>
+  </div>
+  <div class="board-bottom"><div class="board-flow"><span>选一张图</span><b>→</b><span>生成像素图纸</span><b>→</b><span>确认色号与用量</span><b>→</b><span>一颗颗完成喜欢</span></div><div class="board-colors"><span>CREAM / SAGE / APRICOT</span><div class="swatch-line"><i></i><i></i><i></i><i></i><i></i></div></div></div>
+  <div class="board-footer"><span>豆屿 · HIGH-FIDELITY DESIGN CONCEPT</span><span>Crafted with Emil's design engineering principles.</span></div>
+</body>
+</html>

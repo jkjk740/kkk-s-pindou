@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#F8F7F2">
+  <title>豆屿 · 把喜欢，一颗颗拼出来</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="studio">
+    <header class="studio-header">
+      <a class="studio-brand" href="index.html"><span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><i></i></span><strong>豆屿</strong><span>BEAD ISLAND</span></a>
+      <div class="studio-meta"><span class="live-dot"></span> 微信小程序 · UI / UX 交互原型 <a href="board.html">查看设计全景 <span>↗</span></a></div>
+    </header>
+    <main class="studio-main">
+      <aside class="studio-intro">
+        <div class="eyebrow">A LITTLE PIXEL. A LITTLE JOY.</div>
+        <h1>把喜欢，<br>一颗颗<br><span>拼出来。</span></h1>
+        <p>从一张喜欢的图片开始，<br>到一份真正能照着拼的图纸。<br>让创作，慢一点也没关系。</p>
+        <div class="studio-nav" aria-label="原型页面">
+          <button data-page="home" class="selected"><span>01</span> 创作首页 <b>↗</b></button>
+          <button data-page="editor"><span>02</span> 图片转图纸 <b>↗</b></button>
+          <button data-page="palette"><span>03</span> 豆子色卡 <b>↗</b></button>
+          <button data-page="making"><span>04</span> 沉浸跟拼 <b>↗</b></button>
+          <button data-page="works"><span>05</span> 我的作品 <b>↗</b></button>
+        </div>
+        <div class="intro-footer"><span>✳</span> 每一颗小豆子，都有自己的位置。</div>
+      </aside>
+      <section class="device-wrap" aria-label="微信小程序预览">
+        <div class="device"><div id="app" class="miniapp"></div></div>
+        <div class="device-caption"><span class="live-dot"></span> 可点击体验 · 支持导入自己的图片</div>
+      </section>
+      <aside class="studio-notes">
+        <div class="note-number">01 — 05</div>
+        <h2 id="preview-title">灵感从这里开始</h2>
+        <p id="preview-description">一个醒目的创作入口，一些刚刚好的灵感。第一次拼豆，也能轻松开始。</p>
+        <div class="note-divider"></div>
+        <div class="note-label">THE CREATIVE JOURNEY</div>
+        <div class="journey"><span>选一张图</span><i>↓</i><span>生成像素图纸</span><i>↓</i><span>确认色号与用量</span><i>↓</i><span>一颗颗，完成喜欢</span></div>
+        <div class="material-note"><div class="swatch-line"><i></i><i></i><i></i><i></i><i></i></div><strong>自然的颜色，安静的界面。</strong><p>奶油白 · 鼠尾草绿 · 一点点杏橙</p></div>
+        <a class="notes-link" href="docs/design.md">阅读产品与交互说明 ↗</a>
+      </aside>
+    </main>
+    <footer class="studio-footer"><span>豆屿 DESIGN CONCEPT / 2026</span><span>Made for the joy of making things.</span></footer>
+  </div>
+  <input id="image-input" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
