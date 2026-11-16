@@ -1,5 +1,5 @@
 [Unit]
-Description=Douyu cutout sidecar (rembg U-2-Net on CPU, loopback only)
+Description=Douyu cutout sidecar (U-2-Net on onnxruntime CPU, loopback only)
 After=network.target
 StartLimitIntervalSec=120
 StartLimitBurst=5
@@ -11,7 +11,6 @@ Group=douyu-rembg
 WorkingDirectory=/opt/douyu/current/backend/cutout-sidecar
 EnvironmentFile=/etc/douyu/rembg.env
 Environment=PYTHONUNBUFFERED=1
-Environment=NUMBA_CACHE_DIR=/var/cache/douyu-rembg
 ExecStart=/opt/douyu-rembg/venv/bin/python /opt/douyu/current/backend/cutout-sidecar/server.py
 Restart=always
 RestartSec=5s
@@ -23,12 +22,13 @@ StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=douyu-rembg
 
-# u2net 实测常驻约 0.65 GB、峰值约 0.9 GB（关闭 CPU 内存池）；超过上限由内核终止并由 Restart=always 拉起。
-MemoryMax=1536M
+# 不再导入 rembg/numba：u2netp 实测空闲 RSS 约 0.1 GB、推理峰值约 0.29–0.33 GB（含 5 个并发排队请求），
+# u2net 峰值约 0.51 GB。MemoryHigh 让内核先回收页缓存；超过 MemoryMax 只杀本服务，由 Restart=always 拉起。
+MemoryHigh=540M
+MemoryMax=600M
 MemorySwapMax=0
 TasksMax=64
 # 2 vCPU 机器上与 Node 共用 CPU；需要时可再加 CPUQuota=150%。
-CacheDirectory=douyu-rembg
 
 # 只允许本机通信：模型必须提前下载，运行时不能访问外网。
 IPAddressDeny=any

@@ -138,7 +138,7 @@ node --test tests/client-conversion-detail.test.cjs tests/client-work-store.test
 
 ## 2026-11-16 本机 rembg 智能抠图（分支 feat/cutout-rembg，未部署）
 
-新增第二个供应商，用 `CUTOUT_PROVIDER=rembg|aidge` 选择（默认 `aidge`，保持旧行为）；总开关仍是 `CUTOUT_AI_ENABLED`。rembg 供应商调用本机 `backend/cutout-sidecar`（rembg 2.0.87 + onnxruntime 1.32 CPU），模型显式固定为 `u2net`（Apache-2.0），只允许 u2net / u2netp / silueta。rembg 默认的 bria-rmbg（RMBG-2.0，CC BY-NC）不可商用，sidecar 启动时直接拒绝。
+新增第二个供应商，用 `CUTOUT_PROVIDER=rembg|aidge` 选择（默认 `aidge`，保持旧行为）；总开关仍是 `CUTOUT_AI_ENABLED`。rembg 供应商调用本机 `backend/cutout-sidecar`（onnxruntime 1.32 CPU；最初直接用 rembg 2.0.87，现改为按 rembg 的 U2netSession 流程自行实现，运行时不再安装 rembg），生产模型为 `u2netp`（Apache-2.0），只允许 u2net / u2netp / silueta。rembg 默认的 bria-rmbg（RMBG-2.0，CC BY-NC）不可商用，sidecar 启动时直接拒绝。
 
 ### 前端契约
 
@@ -187,3 +187,24 @@ sidecar 变量见 `deploy/aliyun/rembg.env.example`，部署步骤见 `deploy/al
 图片来源：[Cat03.jpg](https://commons.wikimedia.org/wiki/File:Cat03.jpg)（Fir0002，GFDL 1.2）、[YellowLabradorLooking_new.jpg](https://commons.wikimedia.org/wiki/File:YellowLabradorLooking_new.jpg)（CC BY-SA 3.0）、[Albert_Einstein_Head.jpg](https://commons.wikimedia.org/wiki/File:Albert_Einstein_Head.jpg)（公有领域）、[Red_Apple.jpg](https://commons.wikimedia.org/wiki/File:Red_Apple.jpg)（CC BY 2.0）、[Tux.svg](https://commons.wikimedia.org/wiki/File:Tux.svg)（Larry Ewing，署名即可）。测试图片未提交到仓库。
 
 署名与许可：U-2-Net（Qin et al., Apache-2.0）与 rembg（MIT）见仓库根目录 `NOTICE`。
+
+### 2026-11-16 内存优化：不再导入 rembg
+
+ECS（1.7 GiB、`MemoryMax=600M`）上 rembg 版首启时 numba JIT（pymatting）就把匿名内存推到约 611 MB 被 OOM，缓存后空闲也到 600 MB。server.py 改为直接用 onnxruntime + numpy + Pillow，预处理/后处理逐行照搬 rembg 2.0.87 的 `normalize()` 和 `predict()`，不再加载 rembg / pymatting / numba / scipy / scikit-image；并在空闲时 `malloc_trim` 归还堆内存。新增 `REMBG_MEM_PATTERN`（默认 false）和 `REMBG_GRAPH_OPT`（默认 extended）。
+
+蒙版一致性（5 张 1024 px 测试图 × 3 模型，与 rembg 版 server.py 输出逐像素比较）：`REMBG_GRAPH_OPT=all` 时全部逐像素一致（最大差 0）；默认 `extended` 时 silueta 一致，u2netp 最大差 1/255、平均差 ≤0.0005，u2net 最大差 1/255、平均差 ≤0.08，肉眼无差别。
+
+测试机同上（Linux x86_64 Xeon，与其他任务共用，±20% 波动），每张 6 次取后 5 次中位数；峰值为 2 ms 采样的匿名内存和 VmHWM：
+
+| 版本 | 模型 | 线程 | 每张耗时 | 空闲 RSS（匿名） | 推理峰值匿名 | 峰值 RSS（VmHWM） |
+|---|---|---|---|---|---|---|
+| rembg 版 | u2netp | 2 | 226–282 ms | 263 MB（145） | 395 MB | 514 MB |
+| rembg 版 | u2net | 2 | 423–489 ms | 608 MB（490） | 776 MB | 895 MB |
+| 新版 extended | u2netp | 1 | 494–547 ms | 75 MB（36） | 247 MB | 286 MB |
+| 新版 extended | u2netp | 2 | 285–319 ms | 75 MB（36） | 246 MB | 285 MB |
+| 新版 all | u2netp | 1 | 401–462 ms | 75 MB（37） | 324 MB | 363 MB |
+| 新版 all | u2netp | 2 | 233–266 ms | 75 MB（37） | 324 MB | 363 MB |
+| 新版 extended | u2net | 2 | 540–599 ms | 240 MB（200） | 467 MB | 506 MB |
+| 新版 extended | silueta | 2 | 811–905 ms | 115 MB（76） | 432 MB | 471 MB |
+
+文件映射（RssFile，主要是 onnxruntime/numpy 共享库）约 39 MB，已计入峰值 RSS；cgroup `memory.current` 还会算上页缓存，`MemoryHigh=540M` 让内核先回收页缓存。完整 HTTP 服务（u2netp、1 线程）连续 4 轮、每轮 5 个并发请求后 VmHWM 328 MB，处理后匿名内存回落到约 60 MB。结论：生产 u2netp、2 线程、并发 1、`MemoryMax=600M`；首启不再有 JIT，启动约 0.5 s。

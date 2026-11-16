@@ -17,7 +17,9 @@ size-reduced U-2-Net derivative distributed with rembg)
   and verified by SHA-256 (backend/cutout-sidecar/models.sha256). Not modified.
 
 -------------------------------------------------------------------------------
-rembg
+rembg (reference implementation; not installed at runtime)
+  The sidecar's pre/post-processing (backend/cutout-sidecar/server.py) is adapted from
+  rembg 2.0.87 sessions/base.py and sessions/u2net.py, u2netp.py, silueta.py.
   Copyright (c) 2020 Daniel Gatis
   Source: https://github.com/danielgatis/rembg
   License: MIT License
@@ -41,8 +43,10 @@ rembg
 
 -------------------------------------------------------------------------------
 onnxruntime — Copyright (c) Microsoft Corporation. MIT License.
+NumPy — BSD-3-Clause. Pillow — MIT-CMU (HPND).
 Other Python dependencies are pinned in deploy/aliyun/rembg-requirements.txt and keep
 their own licenses (BSD/MIT/Apache-2.0/HPND).
+rembg, pymatting, numba and scipy are no longer runtime dependencies.
 
 Explicitly NOT used: rembg's default model "bria-rmbg" (BRIA RMBG-2.0, CC BY-NC 4.0,
 non-commercial). The sidecar only accepts u2net, u2netp or silueta.

@@ -1,4 +1,4 @@
-"""豆屿智能抠图本机服务（rembg + onnxruntime CPU）。
+"""豆屿智能抠图本机服务（U-2-Net + onnxruntime CPU，推理流程与 rembg 一致，但运行时不导入 rembg）。
 
 只监听 loopback，由 Node 后端调用：
   GET  /health   -> 200 {"ok":true,"model":...} 模型已加载
@@ -60,9 +60,34 @@ def load_settings() -> dict:
         "queue_wait": env_int("REMBG_QUEUE_WAIT_SECONDS", 5, 0, 60),
         "concurrency": env_int("REMBG_CONCURRENCY", 1, 1, 8),
         "threads": env_int("REMBG_THREADS", 0, 0, 64),
-        # 关闭 onnxruntime CPU 内存池：速度基本不变，常驻内存约少 450 MB。
+        # 关闭 onnxruntime CPU 内存池：速度基本不变，常驻内存明显更少。
         "cpu_arena": os.environ.get("REMBG_CPU_ARENA", "false") == "true",
+        # 关闭内存规划（mem pattern）：不预留整张激活内存块，峰值更低。
+        "mem_pattern": os.environ.get("REMBG_MEM_PATTERN", "false") == "true",
+        # 图优化级别：extended 不做 x86 NCHWc 布局转换，u2netp 推理峰值约少 80 MB，速度略慢；all 为 onnxruntime 默认。
+        "graph_opt": graph_opt_level(os.environ.get("REMBG_GRAPH_OPT", "extended")),
     }
+
+
+GRAPH_OPT_LEVELS = ("basic", "extended", "all")
+
+
+def graph_opt_level(value: str) -> str:
+    if value not in GRAPH_OPT_LEVELS:
+        raise ValueError(f"REMBG_GRAPH_OPT must be one of {', '.join(GRAPH_OPT_LEVELS)}")
+    return value
+
+
+def release_free_heap():
+    """推理后把 glibc 空闲堆还给系统，让空闲时 RSS / cgroup 内存回落（非 glibc 平台忽略）。"""
+    if not sys.platform.startswith("linux"):
+        return
+    try:
+        import ctypes
+
+        ctypes.CDLL("libc.so.6").malloc_trim(0)
+    except (OSError, AttributeError):
+        pass
 
 
 def expected_digest(filename: str) -> str:
@@ -81,26 +106,42 @@ def sha256_file(path: str) -> str:
     return digest.hexdigest()
 
 
+# 与 rembg 2.0.87 的 U2netSession / U2netpSession / SiluetaSession 一致的预处理常量。
+INPUT_SIZE = (320, 320)
+MEAN = (0.485, 0.456, 0.406)
+STD = (0.229, 0.224, 0.225)
+
+
+def resolve_model(home: str, filename: str, model: str):
+    """与 rembg BaseSession.resolve_existing 相同的查找顺序：先 <home>/models/<name>/，再 <home>/。"""
+    for path in (os.path.join(home, "models", model, filename), os.path.join(home, filename)):
+        if os.path.exists(path):
+            return path
+    return None
+
+
 class Engine:
-    """加载一次 rembg 会话并复用；并发由信号量限制。"""
+    """直接用 onnxruntime 跑 U-2-Net，不导入 rembg（避免 pymatting/numba/scipy 的常驻内存）。
+
+    预处理和后处理逐行对照 rembg 2.0.87（MIT）的 sessions/base.py normalize() 与
+    sessions/u2net.py、u2netp.py、silueta.py 的 predict()，输出蒙版与 rembg 完全一致。
+    会话加载一次并复用；并发由信号量限制。
+    """
 
     def __init__(self, settings: dict):
         self.settings = settings
-        os.environ["U2NET_HOME"] = settings["home"]
-        os.environ.pop("MODEL_CHECKSUM_DISABLED", None)
-        import onnxruntime as ort  # noqa: WPS433 - 延迟导入，配置错误时快速失败
+        import numpy as np  # noqa: WPS433 - 延迟导入，配置错误时快速失败
+        import onnxruntime as ort
         from PIL import Image
-        from rembg import new_session
-        from rembg.sessions import sessions_class
 
+        self.np = np
         self.Image = Image
         Image.MAX_IMAGE_PIXELS = settings["max_pixels"]
-        session_class = next((item for item in sessions_class if item.name() == settings["model"]), None)
-        if session_class is None:
-            raise RuntimeError("model class unavailable")
-        filename = settings["model"] + ".onnx"
-        # 与 rembg 实际加载的路径一致；文件不存在时 rembg 会去下载，因此这里先拒绝启动。
-        path = session_class.resolve_existing(filename)
+        model = settings["model"]
+        if model not in ALLOWED_MODELS:
+            raise RuntimeError("model not allowed")
+        filename = model + ".onnx"
+        path = resolve_model(settings["home"], filename, model)
         if path is None:
             raise RuntimeError(f"{filename} missing under U2NET_HOME; run download-rembg-models.py at deploy time")
         if sha256_file(path) != expected_digest(filename):
@@ -108,20 +149,55 @@ class Engine:
         options = ort.SessionOptions()
         options.intra_op_num_threads = settings["threads"]
         options.inter_op_num_threads = 1
+        options.execution_mode = ort.ExecutionMode.ORT_SEQUENTIAL
         options.enable_cpu_mem_arena = settings["cpu_arena"]
+        options.enable_mem_pattern = settings["mem_pattern"]
+        options.graph_optimization_level = {
+            "basic": ort.GraphOptimizationLevel.ORT_ENABLE_BASIC,
+            "extended": ort.GraphOptimizationLevel.ORT_ENABLE_EXTENDED,
+            "all": ort.GraphOptimizationLevel.ORT_ENABLE_ALL,
+        }[settings.get("graph_opt", "extended")]
         started = time.monotonic()
-        # 显式指定模型，绝不使用 rembg 默认的 bria-rmbg。
-        self.session = new_session(settings["model"], sess_opts=options, providers=["CPUExecutionProvider"])
+        # 显式指定 U-2-Net 系列权重文件，绝不使用 rembg 默认的 bria-rmbg。
+        self.session = ort.InferenceSession(path, sess_options=options, providers=["CPUExecutionProvider"])
+        self.input_name = self.session.get_inputs()[0].name
         self.load_seconds = time.monotonic() - started
         self.slots = threading.BoundedSemaphore(settings["concurrency"])
         self.busy = 0
         self.lock = threading.Lock()
         warm = time.monotonic()
         self._predict(Image.new("RGB", (320, 320), (255, 255, 255)))
-        LOG.info("model=%s loaded=%.2fs warmup=%.2fs threads=%s", settings["model"], self.load_seconds, time.monotonic() - warm, settings["threads"] or "auto")
+        release_free_heap()
+        LOG.info("model=%s loaded=%.2fs warmup=%.2fs threads=%s graph_opt=%s", model, self.load_seconds, time.monotonic() - warm, settings["threads"] or "auto", settings.get("graph_opt", "extended"))
+
+    def _normalize(self, image):
+        """rembg BaseSession.normalize()：320x320 LANCZOS、除以最大值、按 ImageNet 均值方差标准化、NCHW float32。"""
+        np = self.np
+        im = image.convert("RGB").resize(INPUT_SIZE, self.Image.Resampling.LANCZOS)
+        im_ary = np.array(im)
+        im_ary = im_ary / max(np.max(im_ary), 1e-6)
+        tmp = np.zeros((im_ary.shape[0], im_ary.shape[1], 3))
+        for channel in range(3):
+            tmp[:, :, channel] = (im_ary[:, :, channel] - MEAN[channel]) / STD[channel]
+        tmp = tmp.transpose((2, 0, 1))
+        return np.expand_dims(tmp, 0).astype(np.float32)
 
     def _predict(self, image):
-        return self.session.predict(image)[0]
+        """rembg U2netSession.predict()：取第一个输出的第 0 通道，min-max 归一化，转 uint8，LANCZOS 缩回原尺寸。"""
+        np = self.np
+        outputs = self.session.run(None, {self.input_name: self._normalize(image)})
+        pred = outputs[0][:, 0, :, :]
+        del outputs
+        ma = np.max(pred)
+        mi = np.min(pred)
+        if not ma > mi:  # 常数输出（rembg 这里会得到 NaN），按全背景处理
+            pred = np.zeros_like(pred)
+        else:
+            pred = (pred - mi) / (ma - mi)
+        pred = np.squeeze(pred)
+        # u2net 版本带 clip(0, 1)；min-max 之后值本就在 [0,1]，u2netp/silueta 结果相同。
+        mask = self.Image.fromarray((pred.clip(0, 1) * 255).astype("uint8"), mode="L")
+        return mask.resize(image.size, self.Image.Resampling.LANCZOS)
 
     def decode(self, body: bytes):
         Image = self.Image
@@ -173,6 +249,9 @@ class Engine:
             finally:
                 with self.lock:
                     self.busy -= 1
+                    idle = self.busy == 0
+                if idle:
+                    release_free_heap()
                 self.slots.release()
                 done.set()
 
