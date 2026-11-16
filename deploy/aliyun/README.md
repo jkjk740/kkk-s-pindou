@@ -64,3 +64,40 @@
 `/health/live` 只表示进程能响应；`/health/ready` 检查登录配置、数据库结构和图片目录权限，不能代替真实业务验收。Nginx 仅允许 loopback 请求这两个路径；主机内部也可以直接访问 `http://127.0.0.1:3001/health/ready`。服务启动前就会检查必要表和目录，AI 关闭时也必须有完整抠图表及权限。
 
 应用日志进入 `journalctl -u douyu-backend`，Nginx 日志写入 `/var/log/nginx/douyu-api.*.log`。部署时应核实系统日志保留及 Nginx logrotate 是否覆盖这些文件，避免占满磁盘。日志中不要增加密码、AppSecret、令牌、完整请求体或带凭据的外部 URL。
+
+## 本机智能抠图服务 douyu-rembg（2026-11-16 新增，尚未部署）
+
+`CUTOUT_PROVIDER=rembg` 时，抠图页「智能」按钮改由本机 Python 服务 `backend/cutout-sidecar/server.py`（rembg + onnxruntime CPU + U-2-Net）生成蒙版，用户图片不离开 ECS，不需要 Aidge、OSS 或 AccessKey。服务只监听 `127.0.0.1:3101`，不开放安全组、不经过 Nginx。以下步骤需 JK 确认后由运维执行；每一步可单独回退。命令中的 `deploy/aliyun/...` 指本仓库检出目录（或拷贝到服务器的同名目录）；只拷贝 deploy 目录时给下载脚本加 `--manifest /opt/douyu/current/backend/cutout-sidecar/models.sha256`。
+
+```text
+/opt/douyu-rembg/venv/                 # Python 3.12 venv，root 持有，服务用户只读
+/opt/douyu-rembg/models/u2net.onnx     # 部署时下载并 SHA-256 校验，root:root 0644
+/etc/douyu/rembg.env                   # 来自 rembg.env.example，无密钥
+/etc/systemd/system/douyu-rembg.service
+```
+
+1. 系统用户：`sudo useradd --system --no-create-home --shell /usr/sbin/nologin douyu-rembg`。不加入 `douyu` 组，它读不到 `/var/lib/douyu` 私有图片，图片只通过本机 HTTP 请求体传入。
+2. Python：Ubuntu 24.04 自带 3.12，若缺 venv 模块先 `sudo apt-get install -y python3.12-venv`。
+   ```sh
+   sudo install -d -m 0755 /opt/douyu-rembg
+   sudo python3.12 -m venv /opt/douyu-rembg/venv
+   sudo /opt/douyu-rembg/venv/bin/pip install --require-virtualenv \
+     -i https://mirrors.cloud.aliyuncs.com/pypi/simple/ -r deploy/aliyun/rembg-requirements.txt
+   sudo /opt/douyu-rembg/venv/bin/pip check
+   ```
+   依赖版本已锁定；内网镜像不可用时去掉 `-i` 改用公网 PyPI。安装约 700 MB 磁盘。
+3. 模型：`sudo python3 deploy/aliyun/download-rembg-models.py --dest /opt/douyu-rembg/models --models u2net`。ECS 访问 GitHub 慢或失败时，在别处下载 `u2net.onnx` 后 scp 到服务器，再加 `--from-dir 目录` 运行同一脚本，校验值不变。脚本只接受 u2net / u2netp / silueta，校验失败不落盘。
+4. 配置与启动：
+   ```sh
+   sudo install -m 0644 deploy/aliyun/rembg.env.example /etc/douyu/rembg.env
+   sudo install -m 0644 deploy/aliyun/douyu-rembg.service /etc/systemd/system/douyu-rembg.service
+   sudo systemctl daemon-reload && sudo systemctl enable --now douyu-rembg
+   journalctl -u douyu-rembg -n 20 --no-pager      # 应看到 model=u2net loaded=… 和 listening 127.0.0.1:3101
+   curl -s 127.0.0.1:3101/health                   # {"ok": true, "model": "u2net", ...}
+   curl -s -o /tmp/mask.png -w '%{http_code} %{time_total}\n' -H 'Content-Type: image/png' --data-binary @某张测试图.png 127.0.0.1:3101/v1/mask
+   ```
+   单元为 `Restart=always`、`MemoryMax=1536M`，并用 `IPAddressDeny=any` 禁止外网访问：模型缺失或校验失败时服务直接退出，不会尝试下载。`/etc/douyu` 若为 0700，root 启动的 systemd 仍能读取环境文件。
+5. 后端切换：在 `/etc/douyu/backend.env` 设置 `CUTOUT_PROVIDER=rembg`、`CUTOUT_AI_ENABLED=true`（其余 `CUTOUT_REMBG_*` 可用默认值），`sudo systemctl restart douyu-backend`。后端每 15 秒探测一次 `/health`；sidecar 停掉时 `GET /api/cutout/capabilities` 返回 `intelligent:false`，前端只显示手动工具，`/health/ready` 不受影响。
+6. 回滚：把 `CUTOUT_AI_ENABLED=false` 并重启后端即可关闭智能按钮；再 `sudo systemctl disable --now douyu-rembg`。不涉及数据库变更，已生成的蒙版继续可用。
+
+规格建议：u2net 在 2 线程下单张约 0.4–0.5 s（测试机 Intel Xeon，ECS 可能慢 1.5–2 倍），常驻约 0.65 GB、峰值约 0.9 GB。2 vCPU / 4 GiB 足够，保持 `REMBG_THREADS=2`、`REMBG_CONCURRENCY=1`。若 ECS 只有 2 GiB 内存（还要跑 MySQL 和 Node），改用 `REMBG_MODEL=u2netp`（峰值约 0.5 GB，速度约快一倍，但白色主体在白底上更容易漏），并同时下载 u2netp。详细测量见 `docs/cutout-and-detail-conversion.md`。

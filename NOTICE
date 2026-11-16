@@ -1,0 +1,48 @@
+豆屿 / Bead Island — third-party notices
+
+This repository's server-side intelligent cutout (backend/cutout-sidecar) uses the
+following third-party software and model weights. They are downloaded at deploy time
+and are not committed to this repository.
+
+-------------------------------------------------------------------------------
+U-2-Net (model architecture and pretrained weights: u2net, u2netp; silueta is a
+size-reduced U-2-Net derivative distributed with rembg)
+  Authors: Xuebin Qin, Zichen Zhang, Chenyang Huang, Masood Dehghan,
+  Osmar R. Zaiane and Martin Jagersand
+  Source: https://github.com/xuebinqin/U-2-Net
+  License: Apache License, Version 2.0 — https://www.apache.org/licenses/LICENSE-2.0
+  Paper: Qin et al., "U^2-Net: Going Deeper with Nested U-Structure for Salient
+  Object Detection", Pattern Recognition 106 (2020) 107404.
+  ONNX exports obtained from https://github.com/danielgatis/rembg/releases/tag/v0.0.0
+  and verified by SHA-256 (backend/cutout-sidecar/models.sha256). Not modified.
+
+-------------------------------------------------------------------------------
+rembg
+  Copyright (c) 2020 Daniel Gatis
+  Source: https://github.com/danielgatis/rembg
+  License: MIT License
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy of
+  this software and associated documentation files (the "Software"), to deal in the
+  Software without restriction, including without limitation the rights to use,
+  copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the
+  Software, and to permit persons to whom the Software is furnished to do so,
+  subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all
+  copies or substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+  FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+  COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+  AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+  WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+-------------------------------------------------------------------------------
+onnxruntime — Copyright (c) Microsoft Corporation. MIT License.
+Other Python dependencies are pinned in deploy/aliyun/rembg-requirements.txt and keep
+their own licenses (BSD/MIT/Apache-2.0/HPND).
+
+Explicitly NOT used: rembg's default model "bria-rmbg" (BRIA RMBG-2.0, CC BY-NC 4.0,
+non-commercial). The sidecar only accepts u2net, u2netp or silueta.

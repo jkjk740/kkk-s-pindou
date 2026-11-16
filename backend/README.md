@@ -120,3 +120,7 @@ metadata 包括 id、mimeType、byteSize、width、height、createdAt。JPEG/PNG
 截至 2026-10-17，OSS 已完成 ¥0 开通，上海私有 Bucket `douyu-cutout-20261017-7f3a`、临时前缀 1 天生命周期及该前缀 Put/Get/Delete 的专用 RAM 策略已配置并绑定。域名 `tpejocq.cn` 已实名，ICP、SSL、OSS 自定义域名绑定和业务 DNS CNAME 尚未完成。本地已填写实际 Bucket／地域并设 `CUTOUT_OSS_CNAME=true`，但端点为空且 `CUTOUT_AI_ENABLED=false`；尚未执行真实上传、AI 调用或测试，权限与服务可用性仍待用户验收。
 
 完整步骤、输入大小、临时清理与用户验收边界见 [抠图接入说明](../docs/cutout-and-detail-conversion.md)。服务启动仅表示本地后端可运行，不代表 Aidge 已开通或真实请求通过。
+
+## 本机 rembg 智能抠图（2026-11-16）
+
+`CUTOUT_PROVIDER=rembg` 时改用本机 `cutout-sidecar/`（rembg + U-2-Net，CPU），无需 Aidge／OSS 凭证；默认仍为 `aidge`。前端接口与蒙版格式不变。配置、测量与部署见 [抠图接入说明](../docs/cutout-and-detail-conversion.md) 和 [部署模板](../deploy/aliyun/README.md)，第三方许可见根目录 `NOTICE`。

@@ -1,0 +1,52 @@
+[Unit]
+Description=Douyu cutout sidecar (rembg U-2-Net on CPU, loopback only)
+After=network.target
+StartLimitIntervalSec=120
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=douyu-rembg
+Group=douyu-rembg
+WorkingDirectory=/opt/douyu/current/backend/cutout-sidecar
+EnvironmentFile=/etc/douyu/rembg.env
+Environment=PYTHONUNBUFFERED=1
+Environment=NUMBA_CACHE_DIR=/var/cache/douyu-rembg
+ExecStart=/opt/douyu-rembg/venv/bin/python /opt/douyu/current/backend/cutout-sidecar/server.py
+Restart=always
+RestartSec=5s
+KillSignal=SIGTERM
+TimeoutStartSec=120s
+TimeoutStopSec=20s
+UMask=0077
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=douyu-rembg
+
+# u2net 实测常驻约 0.65 GB、峰值约 0.9 GB（关闭 CPU 内存池）；超过上限由内核终止并由 Restart=always 拉起。
+MemoryMax=1536M
+MemorySwapMax=0
+TasksMax=64
+# 2 vCPU 机器上与 Node 共用 CPU；需要时可再加 CPUQuota=150%。
+CacheDirectory=douyu-rembg
+
+# 只允许本机通信：模型必须提前下载，运行时不能访问外网。
+IPAddressDeny=any
+IPAddressAllow=localhost
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictRealtime=true
+LockPersonality=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+
+[Install]
+WantedBy=multi-user.target
