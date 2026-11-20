@@ -135,3 +135,76 @@ node --test tests/client-conversion-detail.test.cjs tests/client-work-store.test
 - 已通过 Let's Encrypt DNS-01 正式签发 `api.tpejocq.cn` 和 `img.tpejocq.cn` 的独立证书，证书链、域名及私钥匹配已核对成功。到期时间为北京时间 2027-01-17，具体时间及仓库外私有文件路径见 [HTTPS 证书操作记录](ops/https-certificates.md)。
 - 本次创建的两条 `_acme-challenge` TXT 验证记录已清理，DNS 控制台核对为 0 条记录；未添加业务 A/CNAME。
 - 当前只完成证书签发，尚未部署 ECS／OSS HTTPS、配置业务 A/CNAME 解析或开启智能抠图。手动 DNS 验证模式尚未自动续期，正式部署时须补齐续签与证书更新。
+
+## 2026-11-16 本机 rembg 智能抠图（分支 feat/cutout-rembg，未部署）
+
+新增第二个供应商，用 `CUTOUT_PROVIDER=rembg|aidge` 选择（默认 `aidge`，保持旧行为）；总开关仍是 `CUTOUT_AI_ENABLED`。rembg 供应商调用本机 `backend/cutout-sidecar`（onnxruntime 1.32 CPU；最初直接用 rembg 2.0.87，现改为按 rembg 的 U2netSession 流程自行实现，运行时不再安装 rembg），生产模型为 `u2netp`（Apache-2.0），只允许 u2net / u2netp / silueta。rembg 默认的 bria-rmbg（RMBG-2.0，CC BY-NC）不可商用，sidecar 启动时直接拒绝。
+
+### 前端契约
+
+接口、字段、鉴权、限流、每日次数、任务流程和错误码全部沿用上面的私有接口，无字段变化：
+
+- `GET /api/cutout/capabilities` → `{intelligent, manual:true, maxEdge:1024}`。`intelligent` 现在等于「已开启且最近一次 sidecar 健康检查成功」。
+- `POST /api/images/:id/cutout-tasks` `{requestId}` → 任务；`GET /api/cutout-tasks/:id` 轮询，`ready` 后给出 `maskImageId`，`failed` 时 `errorCode` 为 `CUTOUT_UNAVAILABLE` / `CUTOUT_FAILED` 等原有值。
+- 蒙版仍是与 `cutout-input` 工作副本同尺寸的不透明灰度 PNG（0 背景、255 主体），通过 `GET /api/images/:id/content` 读取，确认仍走 `POST /api/images/:id/cutouts`。
+
+唯一的行为差异：Aidge 要求最短边 ≥256，rembg 放宽为最短边 ≥16（最长边仍 ≤1024），因此更小的图片也能用智能识别。
+
+### 后端处理
+
+- Node 把工作副本合成白底后以无损 PNG 发给 `127.0.0.1:3101/v1/mask`，与 Aidge 一样一次只发一个请求；另有进程内等待上限 `CUTOUT_REMBG_QUEUE_LIMIT`（默认 4），超出返回 `CUTOUT_UNAVAILABLE`。请求超时 `CUTOUT_REMBG_TIMEOUT_MS`（默认 45 s）。
+- 返回值必须是同尺寸、单帧、单通道、无 alpha 的 PNG 且非全黑，否则 `CUTOUT_FAILED`；sidecar 不可达或 503 忙碌 → `CUTOUT_UNAVAILABLE`。两种情况前端都回到手动圈选。
+- sidecar 限制请求体 8 MiB、解码 ≤1024×1024 像素、推理前把长边缩到 `REMBG_MAX_SIDE`（默认 1024，u2net 内部本来就按 320×320 推理），推理超时 30 s，并发 1。只监听 loopback，systemd 禁止外网访问。
+- 图片只在本机处理，不再上传第三方云；隐私指引中关于「阿里云处理和临时云存储」的说明在切换到 rembg 后可以改为「服务器本地处理」。
+
+| 新环境变量（Node） | 默认 | 说明 |
+| --- | --- | --- |
+| `CUTOUT_PROVIDER` | `aidge` | `rembg` 或 `aidge`，其他值启动失败 |
+| `CUTOUT_REMBG_URL` | `http://127.0.0.1:3101` | 只接受 loopback http |
+| `CUTOUT_REMBG_TIMEOUT_MS` | `45000` | 1000–120000 |
+| `CUTOUT_REMBG_QUEUE_LIMIT` | `4` | 进程内等待数 1–32 |
+| `CUTOUT_REMBG_HEALTH_INTERVAL_MS` | `15000` | 健康检查间隔 |
+
+sidecar 变量见 `deploy/aliyun/rembg.env.example`，部署步骤见 `deploy/aliyun/README.md`。
+
+### CPU 测量（2026-11-16）
+
+测试机：Linux x86_64，Intel Xeon Processor（8 vCPU，`nproc`=8），Python 3.12.16，onnxruntime 1.32.0，关闭 CPU 内存池（sidecar 默认）。图片来自 Wikimedia Commons，白底合成后缩到长边 ≤1024，经 sidecar 同样的解码、推理、PNG 编码路径；每张 6 次，取后 5 次中位数。测试机与其他任务共用，数字有约 ±20% 波动；ECS 实际 CPU 需上线前再测一次。
+
+| 模型 | 线程 | 猫 1024×1022 | 狗 700×577 | 人像 768×1024 | 苹果 1024×928 | 卡通 863×1024 | 会话加载 | 启动就绪* | 峰值 RSS |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| u2net | 2 | 451 ms | 421 ms | 410 ms | 411 ms | 399 ms | 0.4–0.7 s | 1.4–3.4 s | 893 MB |
+| u2net | 8 | 195 ms | 152 ms | 169 ms | 174 ms | 159 ms | 0.4 s | 1.4 s | 893 MB |
+| u2netp | 2 | 250 ms | 206 ms | 222 ms | 226 ms | 218 ms | 0.04 s | 0.9 s | 505 MB |
+| u2netp | 8 | 132 ms | 89 ms | 106 ms | 107 ms | 100 ms | 0.05 s | 0.8 s | 505 MB |
+| silueta | 2 | 790 ms | 738 ms | 760 ms | 754 ms | 740 ms | 0.09 s | 1.5 s | 668 MB |
+| silueta | 8 | 458 ms | 391 ms | 419 ms | 404 ms | 422 ms | 0.09 s | 1.1 s | 668 MB |
+
+\* 启动就绪 = 导入 rembg + SHA-256 校验 + 创建会话 + 预热一次；较大值为清空页缓存后的冷启动。开启 CPU 内存池时 u2net 峰值约 1.1 GB，速度无明显差别。
+
+质量观察：u2net 四类图都得到完整主体；u2netp 把卡通企鹅白色肚子判成背景；silueta 在这台 CPU 上反而比 u2net 慢且猫的胡须区域发灰。人像只保留头部、深色西装与深色背景粘连，这类图需要手动补选。结论：默认 u2net、2 线程、并发 1；只有内存紧张时退到 u2netp。
+
+图片来源：[Cat03.jpg](https://commons.wikimedia.org/wiki/File:Cat03.jpg)（Fir0002，GFDL 1.2）、[YellowLabradorLooking_new.jpg](https://commons.wikimedia.org/wiki/File:YellowLabradorLooking_new.jpg)（CC BY-SA 3.0）、[Albert_Einstein_Head.jpg](https://commons.wikimedia.org/wiki/File:Albert_Einstein_Head.jpg)（公有领域）、[Red_Apple.jpg](https://commons.wikimedia.org/wiki/File:Red_Apple.jpg)（CC BY 2.0）、[Tux.svg](https://commons.wikimedia.org/wiki/File:Tux.svg)（Larry Ewing，署名即可）。测试图片未提交到仓库。
+
+署名与许可：U-2-Net（Qin et al., Apache-2.0）与 rembg（MIT）见仓库根目录 `NOTICE`。
+
+### 2026-11-16 内存优化：不再导入 rembg
+
+ECS（1.7 GiB、`MemoryMax=600M`）上 rembg 版首启时 numba JIT（pymatting）就把匿名内存推到约 611 MB 被 OOM，缓存后空闲也到 600 MB。server.py 改为直接用 onnxruntime + numpy + Pillow，预处理/后处理逐行照搬 rembg 2.0.87 的 `normalize()` 和 `predict()`，不再加载 rembg / pymatting / numba / scipy / scikit-image；并在空闲时 `malloc_trim` 归还堆内存。新增 `REMBG_MEM_PATTERN`（默认 false）和 `REMBG_GRAPH_OPT`（默认 extended）。
+
+蒙版一致性（5 张 1024 px 测试图 × 3 模型，与 rembg 版 server.py 输出逐像素比较）：`REMBG_GRAPH_OPT=all` 时全部逐像素一致（最大差 0）；默认 `extended` 时 silueta 一致，u2netp 最大差 1/255、平均差 ≤0.0005，u2net 最大差 1/255、平均差 ≤0.08，肉眼无差别。
+
+测试机同上（Linux x86_64 Xeon，与其他任务共用，±20% 波动），每张 6 次取后 5 次中位数；峰值为 2 ms 采样的匿名内存和 VmHWM：
+
+| 版本 | 模型 | 线程 | 每张耗时 | 空闲 RSS（匿名） | 推理峰值匿名 | 峰值 RSS（VmHWM） |
+|---|---|---|---|---|---|---|
+| rembg 版 | u2netp | 2 | 226–282 ms | 263 MB（145） | 395 MB | 514 MB |
+| rembg 版 | u2net | 2 | 423–489 ms | 608 MB（490） | 776 MB | 895 MB |
+| 新版 extended | u2netp | 1 | 494–547 ms | 75 MB（36） | 247 MB | 286 MB |
+| 新版 extended | u2netp | 2 | 285–319 ms | 75 MB（36） | 246 MB | 285 MB |
+| 新版 all | u2netp | 1 | 401–462 ms | 75 MB（37） | 324 MB | 363 MB |
+| 新版 all | u2netp | 2 | 233–266 ms | 75 MB（37） | 324 MB | 363 MB |
+| 新版 extended | u2net | 2 | 540–599 ms | 240 MB（200） | 467 MB | 506 MB |
+| 新版 extended | silueta | 2 | 811–905 ms | 115 MB（76） | 432 MB | 471 MB |
+
+文件映射（RssFile，主要是 onnxruntime/numpy 共享库）约 39 MB，已计入峰值 RSS；cgroup `memory.current` 还会算上页缓存，`MemoryHigh=540M` 让内核先回收页缓存。完整 HTTP 服务（u2netp、1 线程）连续 4 轮、每轮 5 个并发请求后 VmHWM 328 MB，处理后匿名内存回落到约 60 MB。结论：生产 u2netp、2 线程、并发 1、`MemoryMax=600M`；首启不再有 JIT，启动约 0.5 s。

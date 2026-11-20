@@ -48,7 +48,7 @@ function createCutoutService({ config, pool, repository, storage, provider }) {
     async task(owner, id) { const task = await cutouts.getTask(owner, id); if (!task) throw new ApiError('CUTOUT_NOT_FOUND'); return dto(task); },
     async confirm(owner, sourceId, input, maskPath) { return dto(await images.confirm(owner, sourceId, input, maskPath)); },
     async cutout(owner, id) { const value = await cutouts.getCutout(owner, id); if (!value) throw new ApiError('CUTOUT_NOT_FOUND'); return dto(value); },
-    close() { closed = true; clearInterval(timer); }
+    close() { closed = true; clearInterval(timer); provider.close?.(); }
   };
 }
 module.exports = { createCutoutService };

@@ -6,6 +6,11 @@ function number(value, fallback, minimum, maximum) {
   if (!Number.isInteger(result) || result < minimum || result > maximum) throw new Error('服务数字配置无效');
   return result;
 }
+function choice(value, fallback, allowed) {
+  const result = value === undefined || value === '' ? fallback : value;
+  if (!allowed.includes(result)) throw new Error('服务选项配置无效');
+  return result;
+}
 function loadConfig(env = process.env) {
   return {
     host: env.HOST || '127.0.0.1',
@@ -23,6 +28,14 @@ function loadConfig(env = process.env) {
     uploadLimits: { bytes: 10 * 1024 * 1024, pixels: 20000000, quotaBytes: 100 * 1024 * 1024, concurrent: 2 },
     cutout: {
       enabled: env.CUTOUT_AI_ENABLED === 'true',
+      // aidge：阿里云 Aidge 付费抠图；rembg：本机 backend/cutout-sidecar（U-2-Net，CPU）。
+      provider: choice(env.CUTOUT_PROVIDER, 'aidge', ['aidge', 'rembg']),
+      rembg: {
+        url: env.CUTOUT_REMBG_URL || 'http://127.0.0.1:3101',
+        timeoutMs: number(env.CUTOUT_REMBG_TIMEOUT_MS, 45000, 1000, 120000),
+        queue: number(env.CUTOUT_REMBG_QUEUE_LIMIT, 4, 1, 32),
+        healthIntervalMs: number(env.CUTOUT_REMBG_HEALTH_INTERVAL_MS, 15000, 1000, 300000)
+      },
       accessKeyId: env.ALIBABA_CLOUD_ACCESS_KEY_ID || '',
       accessKeySecret: env.ALIBABA_CLOUD_ACCESS_KEY_SECRET || '',
       stagingBucket: env.CUTOUT_OSS_BUCKET || '',

@@ -12,6 +12,7 @@ const { communityRoutes } = require('./community.cjs');
 const { createCommunityRepository } = require('./community-repository.cjs');
 const { createCommunityImages } = require('./community-images.cjs');
 const { createCutoutProvider } = require('./cutout-provider.cjs');
+const { createRembgCutoutProvider } = require('./cutout-rembg-provider.cjs');
 const { createCutoutService } = require('./cutout-service.cjs');
 const { cutoutRoutes } = require('./cutout.cjs');
 function createApp({ config, pool, repository, storage }) {
@@ -47,7 +48,7 @@ function createApp({ config, pool, repository, storage }) {
     response.set('Cache-Control', 'no-store').status(result.ok ? 200 : statusFor(result.error.code)).json(result);
   });
   imageRoutes(app, { repository, storage, config, authenticate, rateLimit });
-  app.cutoutService = createCutoutService({ config, pool, repository, storage, provider: createCutoutProvider(config.cutout) });
+  app.cutoutService = createCutoutService({ config, pool, repository, storage, provider: config.cutout.provider === 'rembg' ? createRembgCutoutProvider(config.cutout) : createCutoutProvider(config.cutout) });
   cutoutRoutes(app, { service: app.cutoutService, storage, authenticate, rateLimit });
   profileRoutes(app, { repository, authenticate, rateLimit });
   communityRoutes(app, { repository, config, authenticate, rateLimit, communityRepository: createCommunityRepository(pool), communityImages: createCommunityImages(config.communityDir) });

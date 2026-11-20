@@ -1,0 +1,12 @@
+# 豆屿本机抠图服务（backend/cutout-sidecar）的锁定依赖，Python 3.12（Ubuntu 24.04 自带）。
+# 2026-11-16 在 Linux x86_64 / Python 3.12 与 macOS arm64 / Python 3.12 实际安装验证。
+# 安装：python3.12 -m venv /opt/douyu-rembg/venv && /opt/douyu-rembg/venv/bin/pip install --require-virtualenv -r rembg-requirements.txt
+# 只装 CPU 版 onnxruntime。运行时不需要 rembg：server.py 直接用 onnxruntime 跑 U-2-Net，
+# 不要再装 rembg / pymatting / numba / llvmlite / scipy / scikit-image（会多占约 200–600 MB 内存）。
+# 模型下载脚本 download-rembg-models.py 只用标准库，不依赖本文件。
+flatbuffers==25.12.19
+numpy==2.5.5
+onnxruntime==1.32.0
+packaging==26.3
+pillow==13.0.0
+protobuf==7.36.2
